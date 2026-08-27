@@ -319,13 +319,13 @@
       <form id="heroForm">
         <div id="heroFormInner">
           <label data-i18n="f_name_l">Name</label>
-          <input type="text" required data-i18n-ph="f_name_ph" placeholder="John Smith">
+          <input type="text" required id="heroName" data-i18n-ph="f_name_ph" placeholder="John Smith">
           <label data-i18n="f_phone_l">Phone</label>
-          <input type="tel" required data-i18n-ph="f_phone_ph" placeholder="+36 30 123 4567">
+          <input type="tel" required id="heroPhone" data-i18n-ph="f_phone_ph" placeholder="+36 30 123 4567">
           <label data-i18n="f_email_l">Email</label>
-          <input type="email" required data-i18n-ph="f_email_ph" placeholder="you@company.com">
+          <input type="email" required id="heroEmail" data-i18n-ph="f_email_ph" placeholder="you@company.com">
           <label data-i18n="f_msg_l">How can we help?</label>
-          <textarea data-i18n-ph="f_msg_ph" placeholder="Material, thickness, quantity, deadline — or attach your drawing..."></textarea>
+          <textarea id="heroMsg" data-i18n-ph="f_msg_ph" placeholder="Material, thickness, quantity, deadline — or attach your drawing..."></textarea>
           <button type="submit" class="btn-o" data-i18n="f_submit">Request a quote</button>
           <p class="fnote" data-i18n="f_note">By submitting, you agree that we may contact you regarding your request.</p>
         </div>
@@ -445,15 +445,15 @@
           </div>
           <div class="fstep" id="fstep1">
             <div class="frow">
-              <div><label data-i18n="f_name_l">Name</label><input type="text" required data-i18n-ph="f_name_ph" placeholder="John Smith"></div>
-              <div><label data-i18n="f_company_l">Company</label><input type="text" data-i18n-ph="f_company_ph" placeholder="Company Ltd."></div>
+              <div><label data-i18n="f_name_l">Name</label><input type="text" required id="qName" data-i18n-ph="f_name_ph" placeholder="John Smith"></div>
+              <div><label data-i18n="f_company_l">Company</label><input type="text" id="qCompany" data-i18n-ph="f_company_ph" placeholder="Company Ltd."></div>
             </div>
             <div class="frow">
-              <div><label data-i18n="f_email_l">Email</label><input type="email" required data-i18n-ph="f_email_ph" placeholder="you@company.com"></div>
-              <div><label data-i18n="f_phone_l">Phone</label><input type="tel" required data-i18n-ph="f_phone_ph" placeholder="+36 30 123 4567"></div>
+              <div><label data-i18n="f_email_l">Email</label><input type="email" required id="qEmail" data-i18n-ph="f_email_ph" placeholder="you@company.com"></div>
+              <div><label data-i18n="f_phone_l">Phone</label><input type="tel" required id="qPhone" data-i18n-ph="f_phone_ph" placeholder="+36 30 123 4567"></div>
             </div>
             <label data-i18n="f_country_l">Country</label>
-            <input type="text" data-i18n-ph="f_country_ph" placeholder="Germany">
+            <input type="text" id="qCountry" data-i18n-ph="f_country_ph" placeholder="Germany">
             <button type="button" class="btn-o" id="fNext"><span data-i18n="f_next">Next</span></button>
           </div>
           <div class="fstep" id="fstep2" hidden>
@@ -479,7 +479,7 @@
               <option data-i18n="f_service_other">Other</option>
             </select>
             <label data-i18n="f_msg_l">How can we help?</label>
-            <textarea data-i18n-ph="f_msg_ph" placeholder="Material, thickness, quantity, deadline — or attach your drawing..."></textarea>
+            <textarea id="qMsg" data-i18n-ph="f_msg_ph" placeholder="Material, thickness, quantity, deadline — or attach your drawing..."></textarea>
             <div class="fbtnrow">
               <button type="button" class="btn-line" id="fBack"><span data-i18n="f_back">Back</span></button>
               <button type="submit" class="btn-o" data-i18n="f_submit">Request a quote</button>
@@ -591,8 +591,38 @@ document.getElementById('langSwitch').addEventListener('click', ()=>{
   }
 })();
 
+async function sendQuote(payload,btn){
+  const original=btn.textContent;
+  btn.disabled=true;
+  try{
+    const res=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error('send failed');
+    return true;
+  }catch(err){
+    alert('Sending failed, please try again or email us directly at info@xl-lemeztechnika.eu');
+    return false;
+  }finally{
+    btn.disabled=false;
+    btn.textContent=original;
+  }
+}
+
 const form=document.getElementById('quoteForm');
-form.addEventListener('submit',e=>{e.preventDefault();document.getElementById('formInner').style.display='none';document.getElementById('okMsg').style.display='block';});
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const btn=form.querySelector('button[type=submit]');
+  const ok=await sendQuote({
+    source:'quoteForm',
+    name:document.getElementById('qName').value,
+    company:document.getElementById('qCompany').value,
+    email:document.getElementById('qEmail').value,
+    phone:document.getElementById('qPhone').value,
+    country:document.getElementById('qCountry').value,
+    service:document.getElementById('fService').value,
+    message:document.getElementById('qMsg').value
+  },btn);
+  if(ok){document.getElementById('formInner').style.display='none';document.getElementById('okMsg').style.display='block';}
+});
 
 const fstep1=document.getElementById('fstep1');
 const fstep2=document.getElementById('fstep2');
@@ -609,7 +639,18 @@ document.getElementById('fBack').addEventListener('click',()=>{
   fdot2.classList.remove('active'); fdot1.classList.add('active');
 });
 const heroForm=document.getElementById('heroForm');
-heroForm.addEventListener('submit',e=>{e.preventDefault();document.getElementById('heroFormInner').style.display='none';document.getElementById('heroOkMsg').style.display='block';});
+heroForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const btn=heroForm.querySelector('button[type=submit]');
+  const ok=await sendQuote({
+    source:'heroForm',
+    name:document.getElementById('heroName').value,
+    email:document.getElementById('heroEmail').value,
+    phone:document.getElementById('heroPhone').value,
+    message:document.getElementById('heroMsg').value
+  },btn);
+  if(ok){document.getElementById('heroFormInner').style.display='none';document.getElementById('heroOkMsg').style.display='block';}
+});
 document.querySelector('.menu-btn').addEventListener('click',()=>document.getElementById('kapcsolat').scrollIntoView());
 
 const drawerOverlay=document.getElementById('drawerOverlay');
